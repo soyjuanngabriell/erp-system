@@ -19,6 +19,8 @@ interface Order {
   discount: number
   notes?: string
   created_at: string
+  deposit_amount?: number
+  payment_status?: string
   order_items: Array<{
     id: string
     product_name: string
@@ -146,6 +148,17 @@ export default async function OrderDetailPage({
                 <p className="text-sm">{order.notes}</p>
               </div>
             )}
+            {order.deposit_amount && order.deposit_amount > 0 && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Abono Recibido</p>
+                <p className="text-sm">RD$ {order.deposit_amount.toLocaleString()}</p>
+                {order.payment_status === "partial" && (
+                  <p className="text-xs text-muted-foreground">
+                    Pendiente: RD$ {(order.total - order.deposit_amount).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -182,7 +195,7 @@ export default async function OrderDetailPage({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {order.order_items?.map((item) => (
+            {order.order_items?.map((item: any) => (
               <div key={item.id} className="flex justify-between items-center p-4 border rounded-lg">
                 <div className="flex-1">
                   <h4 className="font-medium">{item.product_name}</h4>

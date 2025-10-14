@@ -26,6 +26,8 @@ interface Order {
   discount: number
   notes?: string
   created_at: string
+  deposit_amount?: number
+  payment_status?: string
   order_items: Array<{
     id: string
     product_name: string
@@ -99,8 +101,17 @@ export default function EditOrderPage({
       }
 
       // If marking as completed, ensure it has payment status
-      if (order.status === "Completado" && !order.payment_status) {
-        updateData.payment_status = "pending"
+      if (order.status === "Completado") {
+        // If no payment status is set, set it based on deposit
+        if (!order.payment_status) {
+          if (order.deposit_amount && order.deposit_amount >= order.total) {
+            updateData.payment_status = "paid"
+          } else if (order.deposit_amount && order.deposit_amount > 0) {
+            updateData.payment_status = "partial"
+          } else {
+            updateData.payment_status = "pending"
+          }
+        }
       }
 
       const { error } = await supabase

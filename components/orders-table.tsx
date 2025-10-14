@@ -24,11 +24,9 @@ interface Order {
   created_at: string
   created_by_profile?: {
     full_name: string
-    email: string
   }
   assigned_to_profile?: {
     full_name: string
-    email: string
   }
   assigned_at?: string
 }
