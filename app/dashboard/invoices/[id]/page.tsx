@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Download, ArrowLeft } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { notFound } from "next/navigation"
+import { PDFGenerator } from "@/components/pdf-generator"
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -41,12 +42,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             <p className="text-muted-foreground">Detalles de la factura</p>
           </div>
         </div>
-        <Button asChild>
-          <Link href={`/dashboard/invoices/${id}/pdf`}>
-            <Download className="mr-2 h-4 w-4" />
-            Descargar PDF
-          </Link>
-        </Button>
+        <PDFGenerator invoiceId={id} invoiceNumber={invoice.invoice_number} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

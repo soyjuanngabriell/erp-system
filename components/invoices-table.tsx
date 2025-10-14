@@ -2,8 +2,9 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Eye, Download } from "lucide-react"
+import { Eye } from "lucide-react"
 import Link from "next/link"
+import { PDFGenerator } from "@/components/pdf-generator"
 
 interface Invoice {
   id: string
@@ -48,11 +49,7 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
                       <Eye className="h-4 w-4" />
                     </Link>
                   </Button>
-                  <Button variant="ghost" size="icon" asChild>
-                    <Link href={`/dashboard/invoices/${invoice.id}/pdf`}>
-                      <Download className="h-4 w-4" />
-                    </Link>
-                  </Button>
+                  <PDFGenerator invoiceId={invoice.id} invoiceNumber={invoice.invoice_number} />
                 </div>
               </TableCell>
             </TableRow>

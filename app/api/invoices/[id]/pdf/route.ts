@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import puppeteer from "puppeteer"
 
 export async function GET(
   request: NextRequest,
@@ -33,34 +32,11 @@ export async function GET(
     // Generate HTML for PDF
     const html = generateInvoiceHTML(invoice, businessConfig)
 
-    // Generate PDF using Puppeteer
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    })
-    
-    const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'networkidle0' })
-    
-    const pdf = await page.pdf({
-      format: 'letter', // ⬅️ aquí
-      printBackground: true,
-      margin: {
-        top: '20mm',
-        right: '20mm',
-        bottom: '20mm',
-        left: '20mm'
-      }
-    })
-    
-
-    await browser.close()
-
-    // Return PDF as response
-    return new NextResponse(pdf, {
+    // Return HTML that can be printed as PDF by the browser
+    return new NextResponse(html, {
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="factura-${invoice.invoice_number}.pdf"`
+        'Content-Type': 'text/html',
+        'Content-Disposition': `inline; filename="factura-${invoice.invoice_number}.html"`
       }
     })
 
@@ -105,12 +81,47 @@ function generateInvoiceHTML(invoice: any, businessConfig: any) {
         font-size: 12px;
         color: #000;
         margin: 0;
-        padding: 0;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .print-button {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        z-index: 1000;
+      }
+      .print-button:hover {
+        background: #0056b3;
+      }
+      @media print {
+        .print-button {
+          display: none;
+        }
+        body {
+          background: white;
+          padding: 0;
+        }
       }
       .container {
         width: 750px;
         margin: 0 auto;
         padding: 20px;
+        background: white;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      }
+      @media print {
+        .container {
+          box-shadow: none;
+          width: 100%;
+          max-width: none;
+        }
       }
       .header {
         display: flex;
@@ -220,6 +231,7 @@ function generateInvoiceHTML(invoice: any, businessConfig: any) {
     </style>
   </head>
   <body>
+    <button class="print-button" onclick="window.print()">Imprimir PDF</button>
     <div class="container">
 
       <!-- ENCABEZADO -->
