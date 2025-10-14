@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Eye } from "lucide-react"
 import Link from "next/link"
-import { PDFGenerator } from "@/components/pdf-generator"
+import { PrintButton } from "@/components/pdf-generator"
 
 interface Invoice {
   id: string
@@ -49,7 +49,7 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
                       <Eye className="h-4 w-4" />
                     </Link>
                   </Button>
-                  <PDFGenerator invoiceId={invoice.id} invoiceNumber={invoice.invoice_number} />
+                  <PrintButton invoiceId={invoice.id} invoiceNumber={invoice.invoice_number} />
                 </div>
               </TableCell>
             </TableRow>

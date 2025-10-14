@@ -50,6 +50,8 @@ export function OrderForm({ products, customers }: OrderFormProps) {
   const [customerId, setCustomerId] = useState("")
   const [customerName, setCustomerName] = useState("")
   const [customerRnc, setCustomerRnc] = useState("")
+  const [customerEmail, setCustomerEmail] = useState("")
+  const [customerPhone, setCustomerPhone] = useState("")
   const [status, setStatus] = useState("Pendiente")
   const [paymentMethod, setPaymentMethod] = useState("")
   const [notes, setNotes] = useState("")
@@ -146,6 +148,8 @@ export function OrderForm({ products, customers }: OrderFormProps) {
           customer_id: customerId || null,
           customer_name: customerName,
           customer_rnc: customerRnc || null,
+          customer_email: customerEmail || null,
+          customer_phone: customerPhone || null,
           status,
           subtotal,
           tax,
@@ -230,6 +234,27 @@ export function OrderForm({ products, customers }: OrderFormProps) {
             value={customerRnc}
             onChange={(e) => setCustomerRnc(e.target.value)}
             placeholder="RNC o Cédula"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="customerEmail">Email</Label>
+          <Input
+            id="customerEmail"
+            type="email"
+            value={customerEmail}
+            onChange={(e) => setCustomerEmail(e.target.value)}
+            placeholder="Email del cliente"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="customerPhone">Teléfono</Label>
+          <Input
+            id="customerPhone"
+            value={customerPhone}
+            onChange={(e) => setCustomerPhone(e.target.value)}
+            placeholder="Teléfono del cliente"
           />
         </div>
 

@@ -40,7 +40,9 @@ export default async function OrderDetailPage({
     .from("orders")
     .select(`
       *,
-      order_items (*)
+      order_items (*),
+      created_by_profile:profiles!orders_created_by_fkey(full_name, email),
+      assigned_to_profile:profiles!orders_assigned_to_fkey(full_name, email)
     `)
     .eq("id", id)
     .single()
@@ -123,6 +125,21 @@ export default async function OrderDetailPage({
                 minute: '2-digit'
               })}</p>
             </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Creado por</p>
+              <p>{order.created_by_profile?.full_name || 'N/A'}</p>
+            </div>
+            {order.assigned_to_profile && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Asignado a</p>
+                <p>{order.assigned_to_profile.full_name}</p>
+                {order.assigned_at && (
+                  <p className="text-xs text-muted-foreground">
+                    Asignado el {new Date(order.assigned_at).toLocaleDateString("es-DO")}
+                  </p>
+                )}
+              </div>
+            )}
             {order.notes && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Notas</p>

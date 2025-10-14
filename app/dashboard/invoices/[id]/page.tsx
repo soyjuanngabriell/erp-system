@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { notFound } from "next/navigation"
-import { PDFGenerator } from "@/components/pdf-generator"
+import { PrintButton } from "@/components/pdf-generator"
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -42,7 +42,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             <p className="text-muted-foreground">Detalles de la factura</p>
           </div>
         </div>
-        <PDFGenerator invoiceId={id} invoiceNumber={invoice.invoice_number} />
+        <PrintButton invoiceId={id} invoiceNumber={invoice.invoice_number} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

@@ -89,16 +89,23 @@ export default function EditOrderPage({
 
     setSaving(true)
     try {
+      const updateData: any = {
+        customer_name: order.customer_name,
+        customer_email: order.customer_email,
+        customer_phone: order.customer_phone,
+        status: order.status,
+        notes: order.notes,
+        updated_at: new Date().toISOString()
+      }
+
+      // If marking as completed, ensure it has payment status
+      if (order.status === "Completado" && !order.payment_status) {
+        updateData.payment_status = "pending"
+      }
+
       const { error } = await supabase
         .from("orders")
-        .update({
-          customer_name: order.customer_name,
-          customer_email: order.customer_email,
-          customer_phone: order.customer_phone,
-          status: order.status,
-          notes: order.notes,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq("id", order.id)
 
       if (error) {

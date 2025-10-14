@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, ShoppingCart, FileText, Package, BarChart3, Settings } from "lucide-react"
+import { LayoutDashboard, ShoppingCart, FileText, Package, BarChart3, Settings, Receipt } from "lucide-react"
 
 interface DashboardNavProps {
   profile: {
@@ -33,6 +33,12 @@ export function DashboardNav({ profile }: DashboardNavProps) {
       icon: FileText,
       href: "/dashboard/invoices",
       active: pathname?.startsWith("/dashboard/invoices"),
+    },
+    {
+      label: "Gestión de Pagos",
+      icon: Receipt,
+      href: "/dashboard/billing",
+      active: pathname?.startsWith("/dashboard/billing"),
     },
     {
       label: "Inventario",

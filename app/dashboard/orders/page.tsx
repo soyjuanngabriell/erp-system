@@ -10,12 +10,12 @@ export default async function OrdersPage() {
 
   const { data: orders } = await supabase
     .from("orders")
-    .select(
-      `
+    .select(`
       *,
-      order_items (*)
-    `,
-    )
+      order_items (*),
+      created_by_profile:profiles!orders_created_by_fkey(full_name, email),
+      assigned_to_profile:profiles!orders_assigned_to_fkey(full_name, email)
+    `)
     .order("created_at", { ascending: false })
 
   return (

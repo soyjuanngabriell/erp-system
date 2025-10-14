@@ -1,18 +1,36 @@
 "use client"
 
+import { useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Eye, Pencil } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Eye, Pencil, UserPlus } from "lucide-react"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
+import { useUsers } from "@/hooks/use-users"
+import { useCurrentUser } from "@/hooks/use-current-user"
+import { AssignOrderModal } from "@/components/assign-order-modal"
 
 interface Order {
   id: string
   order_number: string
   customer_name: string
+  customer_email?: string
+  customer_phone?: string
   status: string
   total: number
   created_at: string
+  created_by_profile?: {
+    full_name: string
+    email: string
+  }
+  assigned_to_profile?: {
+    full_name: string
+    email: string
+  }
+  assigned_at?: string
 }
 
 interface OrdersTableProps {
@@ -20,6 +38,11 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders }: OrdersTableProps) {
+  const [assigningOrder, setAssigningOrder] = useState<string | null>(null)
+  const supabase = createClient()
+  const { users, loading: usersLoading } = useUsers()
+  const { user: currentUser } = useCurrentUser()
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Completado":
@@ -35,6 +58,11 @@ export function OrdersTable({ orders }: OrdersTableProps) {
     }
   }
 
+  const handleOrderAssigned = () => {
+    // Refresh the page to show updated data
+    window.location.reload()
+  }
+
   if (orders.length === 0) {
     return <p className="text-center text-muted-foreground py-8">No hay órdenes registradas</p>
   }
@@ -47,6 +75,8 @@ export function OrdersTable({ orders }: OrdersTableProps) {
             <TableHead>Número</TableHead>
             <TableHead>Cliente</TableHead>
             <TableHead>Estado</TableHead>
+            <TableHead>Creado por</TableHead>
+            <TableHead>Asignado a</TableHead>
             <TableHead className="text-right">Total</TableHead>
             <TableHead>Fecha</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
@@ -56,11 +86,43 @@ export function OrdersTable({ orders }: OrdersTableProps) {
           {orders.map((order) => (
             <TableRow key={order.id}>
               <TableCell className="font-medium">{order.order_number}</TableCell>
-              <TableCell>{order.customer_name}</TableCell>
+              <TableCell>
+                <div>
+                  <div className="font-medium">{order.customer_name}</div>
+                  {order.customer_email && (
+                    <div className="text-sm text-muted-foreground">{order.customer_email}</div>
+                  )}
+                </div>
+              </TableCell>
               <TableCell>
                 <Badge variant="secondary" className={getStatusColor(order.status)}>
                   {order.status}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                <div className="text-sm">
+                  <div className="font-medium">{order.created_by_profile?.full_name || 'N/A'}</div>
+                </div>
+              </TableCell>
+              <TableCell>
+                {order.assigned_to_profile ? (
+                  <div className="text-sm">
+                    <div className="font-medium">{order.assigned_to_profile.full_name}</div>
+                    {order.assigned_at && (
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(order.assigned_at).toLocaleDateString("es-DO")}
+                      </div>
+                    )}
+                  </div>
+                ) : order.status === "Pendiente" && currentUser ? (
+                  <AssignOrderModal 
+                    orderId={order.id} 
+                    orderTotal={order.total}
+                    onOrderAssigned={handleOrderAssigned}
+                  />
+                ) : (
+                  <span className="text-muted-foreground">No asignado</span>
+                )}
               </TableCell>
               <TableCell className="text-right">RD$ {order.total.toLocaleString()}</TableCell>
               <TableCell>{new Date(order.created_at).toLocaleDateString("es-DO")}</TableCell>
