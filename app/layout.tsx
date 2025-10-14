@@ -9,8 +9,8 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Empresa Manager - Sistema ERP/POS",
-  description: "Sistema de gestión empresarial completo",
+  title: "Grupo Lis",
+  description: "Sistema de venta empresarial",
   generator: "v0.app",
 }
 
