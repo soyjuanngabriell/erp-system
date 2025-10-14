@@ -15,7 +15,7 @@ export default async function DashboardPage() {
   const { data: lowStockProducts } = await supabase
     .from("products")
     .select("*")
-    .lte("stock", supabase.raw("min_stock"))
+    .filter("stock", "lte", "min_stock")
     .eq("is_active", true)
 
   const { data: recentOrders } = await supabase

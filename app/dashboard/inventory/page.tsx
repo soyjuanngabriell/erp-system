@@ -24,7 +24,7 @@ export default async function InventoryPage() {
   const { data: lowStockProducts } = await supabase
     .from("products")
     .select("*")
-    .lte("stock", supabase.raw("min_stock"))
+    .filter("stock", "lte", "min_stock")
     .eq("is_active", true)
 
   return (
