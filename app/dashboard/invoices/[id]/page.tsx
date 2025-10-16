@@ -86,6 +86,20 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
               </div>
             )}
             <div>
+              <p className="text-sm text-muted-foreground">Tipo de Factura</p>
+              <p className="font-medium">
+                {invoice.invoice_type === 'BASICA' && 'Básica'}
+                {invoice.invoice_type === 'VALOR_FISCAL' && 'Valor Fiscal'}
+                {invoice.invoice_type === 'VALOR_GUBERNAMENTAL' && 'Valor Gubernamental'}
+              </p>
+            </div>
+            {invoice.ncf && (
+              <div>
+                <p className="text-sm text-muted-foreground">NCF</p>
+                <p className="font-medium">{invoice.ncf}</p>
+              </div>
+            )}
+            <div>
               <p className="text-sm text-muted-foreground">Método de Pago</p>
               <p className="font-medium">{invoice.payment_method}</p>
             </div>

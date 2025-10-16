@@ -20,6 +20,8 @@ interface BusinessConfig {
   email: string
   logo_url?: string
   low_stock_threshold: number
+  fiscal_sequence: number
+  governmental_sequence: number
 }
 
 interface BusinessConfigFormProps {
@@ -38,6 +40,8 @@ export function BusinessConfigForm({ businessConfig }: BusinessConfigFormProps) 
     email: businessConfig?.email || "",
     logo_url: businessConfig?.logo_url || "",
     low_stock_threshold: businessConfig?.low_stock_threshold || 10,
+    fiscal_sequence: businessConfig?.fiscal_sequence || 0,
+    governmental_sequence: businessConfig?.governmental_sequence || 0,
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,6 +68,8 @@ export function BusinessConfigForm({ businessConfig }: BusinessConfigFormProps) 
             email: formData.email,
             logo_url: formData.logo_url || null,
             low_stock_threshold: formData.low_stock_threshold,
+            fiscal_sequence: formData.fiscal_sequence,
+            governmental_sequence: formData.governmental_sequence,
             updated_at: new Date().toISOString(),
           })
           .eq("id", businessConfig.id)
@@ -79,6 +85,8 @@ export function BusinessConfigForm({ businessConfig }: BusinessConfigFormProps) 
           email: formData.email,
           logo_url: formData.logo_url || null,
           low_stock_threshold: formData.low_stock_threshold,
+          fiscal_sequence: formData.fiscal_sequence,
+          governmental_sequence: formData.governmental_sequence,
         })
 
         if (error) throw error
@@ -184,6 +192,38 @@ export function BusinessConfigForm({ businessConfig }: BusinessConfigFormProps) 
         <p className="text-sm text-muted-foreground">
           Los productos con stock igual o menor a este número se mostrarán como "stock bajo"
         </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="fiscal_sequence">Secuencia Facturas Valor Fiscal</Label>
+          <Input
+            id="fiscal_sequence"
+            type="number"
+            min="0"
+            value={formData.fiscal_sequence}
+            onChange={(e) => setFormData({ ...formData, fiscal_sequence: parseInt(e.target.value) || 0 })}
+            placeholder="0"
+          />
+          <p className="text-sm text-muted-foreground">
+            Número inicial para facturas con valor fiscal (B0100000XXXX)
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="governmental_sequence">Secuencia Facturas Valor Gubernamental</Label>
+          <Input
+            id="governmental_sequence"
+            type="number"
+            min="0"
+            value={formData.governmental_sequence}
+            onChange={(e) => setFormData({ ...formData, governmental_sequence: parseInt(e.target.value) || 0 })}
+            placeholder="0"
+          />
+          <p className="text-sm text-muted-foreground">
+            Número inicial para facturas con valor gubernamental (B1500000XXXX)
+          </p>
+        </div>
       </div>
 
       <Button type="submit" disabled={isLoading} className="w-full">

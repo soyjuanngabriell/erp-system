@@ -66,6 +66,30 @@ function generateInvoiceHTML(invoice: any, businessConfig: any) {
     }).format(amount)
   }
 
+  const getInvoiceTitle = (invoiceType: string) => {
+    switch (invoiceType) {
+      case 'BASICA':
+        return 'FACTURA BÁSICA'
+      case 'VALOR_FISCAL':
+        return 'FACTURA CON VALOR FISCAL'
+      case 'VALOR_GUBERNAMENTAL':
+        return 'FACTURA CON VALOR GUBERNAMENTAL'
+      default:
+        return 'FACTURA'
+    }
+  }
+
+  const getInvoiceTypeLabel = (invoiceType: string) => {
+    switch (invoiceType) {
+      case 'VALOR_FISCAL':
+        return 'Valor Fiscal'
+      case 'VALOR_GUBERNAMENTAL':
+        return 'Valor Gubernamental'
+      default:
+        return ''
+    }
+  }
+
   return `
   <!DOCTYPE html>
   <html lang="es">
@@ -243,10 +267,11 @@ function generateInvoiceHTML(invoice: any, businessConfig: any) {
           <p>Email: ${businessConfig?.email || ''}</p>
         </div>
         <div class="header-right">
-          <h2>FACTURA</h2>
-          <p><strong>NCF:</strong> ${invoice.ncf || 'B0000000000'}</p>
+          <h2>${getInvoiceTitle(invoice.invoice_type)}</h2>
+          ${invoice.ncf ? `<p><strong>NCF:</strong> ${invoice.ncf}</p>` : ''}
           <p><strong>Fecha de factura:</strong> ${formatDate(invoice.created_at)}</p>
           <p><strong>Factura #:</strong> ${invoice.invoice_number}</p>
+          ${invoice.invoice_type !== 'BASICA' ? `<p><strong>Tipo:</strong> ${getInvoiceTypeLabel(invoice.invoice_type)}</p>` : ''}
         </div>
       </div>
 

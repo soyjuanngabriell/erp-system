@@ -31,6 +31,8 @@ interface Customer {
 interface BusinessConfig {
   business_name: string
   rnc: string
+  fiscal_sequence: number
+  governmental_sequence: number
 }
 
 interface InvoiceItem {
@@ -58,6 +60,7 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
   const [customerRnc, setCustomerRnc] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("Efectivo")
   const [notes, setNotes] = useState("")
+  const [invoiceType, setInvoiceType] = useState<"BASICA" | "VALOR_FISCAL" | "VALOR_GUBERNAMENTAL">("BASICA")
   const [items, setItems] = useState<InvoiceItem[]>([])
 
   const [selectedProduct, setSelectedProduct] = useState("")
@@ -182,18 +185,33 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
         throw new Error("Debe agregar al menos un producto")
       }
 
-      // Get next invoice number from database function
-      const { data: invoiceNumberData, error: invoiceNumberError } = await supabase.rpc("get_next_invoice_number")
+      // Get next invoice number by type from database function
+      const { data: invoiceNumberData, error: invoiceNumberError } = await supabase.rpc("get_next_invoice_number_by_type", {
+        p_invoice_type: invoiceType
+      })
 
       if (invoiceNumberError) throw invoiceNumberError
 
       const invoiceNumber = invoiceNumberData
+
+      // Generate NCF for fiscal invoices
+      let ncf = null
+      if (invoiceType === "VALOR_FISCAL" || invoiceType === "VALOR_GUBERNAMENTAL") {
+        const { data: ncfData, error: ncfError } = await supabase.rpc("generate_ncf", {
+          p_invoice_type: invoiceType,
+          p_sequence: parseInt(invoiceNumber.slice(-4)) // Extract sequence from invoice number
+        })
+        if (ncfError) throw ncfError
+        ncf = ncfData
+      }
 
       // Create invoice
       const { data: invoice, error: invoiceError } = await supabase
         .from("invoices")
         .insert({
           invoice_number: invoiceNumber,
+          invoice_type: invoiceType,
+          ncf: ncf,
           customer_name: customerName,
           customer_rnc: customerRnc || null,
           subtotal,
@@ -320,6 +338,25 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
               <SelectItem value="Transferencia">Transferencia</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="invoiceType">Tipo de Factura</Label>
+          <Select value={invoiceType} onValueChange={(value: "BASICA" | "VALOR_FISCAL" | "VALOR_GUBERNAMENTAL") => setInvoiceType(value)} required>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="BASICA">Básica (Sin valor fiscal)</SelectItem>
+              <SelectItem value="VALOR_FISCAL">Valor Fiscal (B0100000XXXX)</SelectItem>
+              <SelectItem value="VALOR_GUBERNAMENTAL">Valor Gubernamental (B1500000XXXX)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">
+            {invoiceType === "BASICA" && "Factura sin valor fiscal para uso interno"}
+            {invoiceType === "VALOR_FISCAL" && "Factura con valor fiscal para contribuyentes"}
+            {invoiceType === "VALOR_GUBERNAMENTAL" && "Factura con valor gubernamental para entidades públicas"}
+          </p>
         </div>
       </div>
 

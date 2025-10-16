@@ -9,6 +9,8 @@ import { PrintButton } from "@/components/pdf-generator"
 interface Invoice {
   id: string
   invoice_number: string
+  invoice_type: string
+  ncf?: string
   customer_name: string
   total: number
   created_at: string
@@ -29,6 +31,7 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Número</TableHead>
+            <TableHead>Tipo</TableHead>
             <TableHead>Cliente</TableHead>
             <TableHead className="text-right">Total</TableHead>
             <TableHead>Fecha</TableHead>
@@ -39,6 +42,16 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
           {invoices.map((invoice) => (
             <TableRow key={invoice.id}>
               <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+              <TableCell>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">
+                    {invoice.invoice_type === 'BASICA' && 'Básica'}
+                    {invoice.invoice_type === 'VALOR_FISCAL' && 'Valor Fiscal'}
+                    {invoice.invoice_type === 'VALOR_GUBERNAMENTAL' && 'Valor Gubernamental'}
+                  </span>
+                  {invoice.ncf && <span className="text-xs text-muted-foreground">{invoice.ncf}</span>}
+                </div>
+              </TableCell>
               <TableCell>{invoice.customer_name}</TableCell>
               <TableCell className="text-right">RD$ {invoice.total.toLocaleString()}</TableCell>
               <TableCell>{new Date(invoice.created_at).toLocaleDateString("es-DO")}</TableCell>
