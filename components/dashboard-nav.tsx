@@ -37,8 +37,8 @@ export function DashboardNav({ profile }: DashboardNavProps) {
     {
       label: "Gestión de Pagos",
       icon: Receipt,
-      href: "/dashboard/billing",
-      active: pathname?.startsWith("/dashboard/billing"),
+      href: "/dashboard/payments",
+      active: pathname?.startsWith("/dashboard/payments"),
     },
     {
       label: "Inventario",

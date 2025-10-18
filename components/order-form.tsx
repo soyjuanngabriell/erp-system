@@ -65,6 +65,7 @@ export function OrderForm({ products, customers }: OrderFormProps) {
   const [customerPhone, setCustomerPhone] = useState("")
   const [status, setStatus] = useState("Pendiente")
   const [paymentMethod, setPaymentMethod] = useState("")
+  const [paymentAmount, setPaymentAmount] = useState(0)
   const [notes, setNotes] = useState("")
   const [items, setItems] = useState<OrderItem[]>([])
 
@@ -215,6 +216,7 @@ export function OrderForm({ products, customers }: OrderFormProps) {
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0)
   const tax = subtotal * 0.18 // 18% ITBIS
   const total = subtotal + tax
+  const pendingAmount = total - paymentAmount
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -250,6 +252,8 @@ export function OrderForm({ products, customers }: OrderFormProps) {
           tax,
           discount: 0,
           total,
+          payment_amount: paymentAmount,
+          pending_amount: pendingAmount,
           payment_method: paymentMethod || null,
           notes: notes || null,
           created_by: user.id,
@@ -273,6 +277,19 @@ export function OrderForm({ products, customers }: OrderFormProps) {
       )
 
       if (itemsError) throw itemsError
+
+      // Create payment record if there's a payment amount
+      if (paymentAmount > 0) {
+        const { error: paymentError } = await supabase.from("payments").insert({
+          order_id: order.id,
+          amount: paymentAmount,
+          payment_method: paymentMethod || "Efectivo",
+          notes: "Pago inicial",
+          created_by: user.id,
+        })
+
+        if (paymentError) throw paymentError
+      }
 
       toast({
         title: "Orden creada",
@@ -439,6 +456,22 @@ export function OrderForm({ products, customers }: OrderFormProps) {
             </SelectContent>
           </Select>
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="paymentAmount">Monto del Abono</Label>
+          <Input
+            id="paymentAmount"
+            type="number"
+            min="0"
+            step="0.01"
+            value={paymentAmount}
+            onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+            placeholder="0.00"
+          />
+          <p className="text-sm text-muted-foreground">
+            Monto inicial pagado por el cliente
+          </p>
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -530,6 +563,16 @@ export function OrderForm({ products, customers }: OrderFormProps) {
             <div className="flex justify-between border-t pt-2">
               <span className="font-bold">Total:</span>
               <span className="font-bold">RD$ {total.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Abono:</span>
+              <span className="font-medium text-green-600">RD$ {paymentAmount.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between border-t pt-2">
+              <span className="font-bold">Saldo Pendiente:</span>
+              <span className={`font-bold ${pendingAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                RD$ {pendingAmount.toLocaleString()}
+              </span>
             </div>
           </div>
         </div>
