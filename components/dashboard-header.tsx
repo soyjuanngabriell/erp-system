@@ -41,8 +41,8 @@ export function DashboardHeader({ profile }: DashboardHeaderProps) {
             <Building2 className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold">Empresa Manager</h1>
-            <p className="text-xs text-muted-foreground">Sistema ERP/POS</p>
+            <h1 className="text-lg font-bold">Sistema de ventas</h1>
+            <p className="text-xs text-muted-foreground">GRUPO LIS DIGITAL COLOR</p>
           </div>
         </div>
 

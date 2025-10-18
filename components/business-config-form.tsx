@@ -49,6 +49,23 @@ export function BusinessConfigForm({ businessConfig }: BusinessConfigFormProps) 
     setIsLoading(true)
 
     try {
+      // Basic validation
+      if (!formData.business_name.trim()) {
+        throw new Error("El nombre de la empresa es requerido")
+      }
+      if (!formData.rnc.trim()) {
+        throw new Error("El RNC es requerido")
+      }
+      if (!formData.address.trim()) {
+        throw new Error("La dirección es requerida")
+      }
+      if (!formData.phone.trim()) {
+        throw new Error("El teléfono es requerido")
+      }
+      if (!formData.email.trim()) {
+        throw new Error("El email es requerido")
+      }
+
       const supabase = createClient()
       const {
         data: { user },
@@ -107,6 +124,7 @@ export function BusinessConfigForm({ businessConfig }: BusinessConfigFormProps) 
 
       router.refresh()
     } catch (error) {
+      console.error("Error saving business config:", error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Error al guardar la configuración",

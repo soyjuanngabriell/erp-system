@@ -47,8 +47,8 @@ export default function LoginPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary">
               <Building2 className="h-8 w-8 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl font-bold">Empresa Manager</h1>
-            <p className="text-muted-foreground">Sistema ERP/POS</p>
+            <h1 className="text-3xl font-bold">Sistema de ventas</h1>
+            <p className="text-muted-foreground">GRUPO LIS DIGITAL COLOR</p>
           </div>
 
           <Card>
