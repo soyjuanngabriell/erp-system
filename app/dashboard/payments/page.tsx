@@ -20,6 +20,7 @@ interface Order {
   customer_name: string
   customer_rnc: string | null
   status: string
+  invoice_type?: string
   total: number
   payment_amount: number
   pending_amount: number
@@ -135,10 +136,44 @@ export default function PaymentManagementPage() {
 
       if (orderError) throw orderError
 
-      toast({
-        title: "Pago registrado",
-        description: `Pago de RD$ ${paymentAmount.toLocaleString()} registrado exitosamente`,
-      })
+      // If order is now fully paid and completed, convert to invoice
+      if (newPendingAmount <= 0 && selectedOrder.status === "Completado") {
+        try {
+          const { data: invoiceId, error: conversionError } = await supabase.rpc("convert_order_to_invoice", {
+            p_order_id: selectedOrder.id,
+            p_invoice_type: selectedOrder.invoice_type || "BASICA"
+          })
+
+          if (conversionError) {
+            console.error("Error converting to invoice:", conversionError)
+            console.error("Conversion error details:", {
+              orderId: selectedOrder.id,
+              invoiceType: selectedOrder.invoice_type,
+              error: conversionError
+            })
+            toast({
+              title: "Pago registrado",
+              description: `Pago de RD$ ${paymentAmount.toLocaleString()} registrado. Error al convertir a factura: ${conversionError.message || 'Error desconocido'}`,
+            })
+          } else {
+            toast({
+              title: "Pago registrado y orden convertida",
+              description: `Pago de RD$ ${paymentAmount.toLocaleString()} registrado. La orden ha sido convertida a factura.`,
+            })
+          }
+        } catch (conversionError) {
+          console.error("Error converting to invoice:", conversionError)
+          toast({
+            title: "Pago registrado",
+            description: `Pago de RD$ ${paymentAmount.toLocaleString()} registrado. Error al convertir a factura.`,
+          })
+        }
+      } else {
+        toast({
+          title: "Pago registrado",
+          description: `Pago de RD$ ${paymentAmount.toLocaleString()} registrado exitosamente`,
+        })
+      }
 
       // Reset form and refresh data
       setPaymentAmount(0)
@@ -194,7 +229,7 @@ export default function PaymentManagementPage() {
       "Pendiente": "secondary",
       "En Proceso": "default",
       "Completado": "default",
-      "Facturada": "success",
+      "Facturada": "secondary",
       "Cancelado": "destructive"
     } as const
 
@@ -310,16 +345,27 @@ export default function PaymentManagementPage() {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="paymentAmount">Monto del Pago</Label>
-                          <Input
-                            id="paymentAmount"
-                            type="number"
-                            min="0.01"
-                            max={selectedOrder.pending_amount}
-                            step="0.01"
-                            value={paymentAmount}
-                            onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
-                            placeholder="0.00"
-                          />
+                          <div className="flex gap-2">
+                            <Input
+                              id="paymentAmount"
+                              type="number"
+                              min="0.01"
+                              max={selectedOrder.pending_amount}
+                              step="0.01"
+                              value={paymentAmount}
+                              onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                              placeholder="0.00"
+                              className="flex-1"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setPaymentAmount(selectedOrder.pending_amount)}
+                              disabled={selectedOrder.pending_amount <= 0}
+                            >
+                              Saldar Todo
+                            </Button>
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="paymentMethod">Método de Pago</Label>

@@ -20,6 +20,7 @@ interface Order {
   customer_email?: string
   customer_phone?: string
   status: string
+  invoice_type?: string
   total: number
   subtotal: number
   tax: number
@@ -27,6 +28,8 @@ interface Order {
   notes?: string
   created_at: string
   deposit_amount?: number
+  payment_amount?: number
+  pending_amount?: number
   payment_status?: string
   order_items: Array<{
     id: string
@@ -136,22 +139,33 @@ export default function EditOrderPage({
       }
 
       // If order is completed and fully paid, convert to invoice
-      if (order.status === "Completado" && order.payment_amount >= order.total) {
-        try {
-          const { data: invoiceId, error: conversionError } = await supabase.rpc("convert_order_to_invoice", {
-            p_order_id: order.id,
-            p_invoice_type: "BASICA"
-          })
+      if (order.status === "Completado") {
+        const pendingAmount = order.total - (order.payment_amount || 0)
+        
+        if (pendingAmount <= 0) {
+          try {
+            const { data: invoiceId, error: conversionError } = await supabase.rpc("convert_order_to_invoice", {
+              p_order_id: order.id,
+              p_invoice_type: order.invoice_type || "BASICA"
+            })
 
-          if (conversionError) {
+            if (conversionError) {
+              console.error("Error converting to invoice:", conversionError)
+              console.error("Conversion error details:", {
+                orderId: order.id,
+                invoiceType: order.invoice_type,
+                error: conversionError
+              })
+              toast.warning("Orden completada pero error al convertir a factura")
+            } else {
+              toast.success("Orden completada y convertida a factura exitosamente")
+            }
+          } catch (conversionError) {
             console.error("Error converting to invoice:", conversionError)
             toast.warning("Orden completada pero error al convertir a factura")
-          } else {
-            toast.success("Orden completada y convertida a factura exitosamente")
           }
-        } catch (conversionError) {
-          console.error("Error converting to invoice:", conversionError)
-          toast.warning("Orden completada pero error al convertir a factura")
+        } else {
+          toast.success("Orden completada. Tiene saldo pendiente.")
         }
       } else {
         toast.success("Orden actualizada exitosamente")

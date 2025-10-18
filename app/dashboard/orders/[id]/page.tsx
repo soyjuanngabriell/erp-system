@@ -20,13 +20,16 @@ interface Order {
   notes?: string
   created_at: string
   deposit_amount?: number
+  payment_amount?: number
+  pending_amount?: number
   payment_status?: string
   order_items: Array<{
     id: string
     product_name: string
+    product_sku: string
     quantity: number
     unit_price: number
-    total: number
+    subtotal: number
   }>
 }
 
@@ -200,11 +203,11 @@ export default async function OrderDetailPage({
                 <div className="flex-1">
                   <h4 className="font-medium">{item.product_name}</h4>
                   <p className="text-sm text-muted-foreground">
-                    Cantidad: {item.quantity} × {formatCurrency(item.unit_price)}
+                    Cantidad: {item.quantity} × {formatCurrency(item.unit_price || 0)}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold">{formatCurrency(item.total)}</p>
+                  <p className="font-semibold">{formatCurrency(item.subtotal || 0)}</p>
                 </div>
               </div>
             ))}

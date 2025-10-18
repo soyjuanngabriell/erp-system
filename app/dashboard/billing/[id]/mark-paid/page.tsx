@@ -43,7 +43,7 @@ export default function MarkPaidPage({
           `)
           .eq("id", id)
           .eq("status", "Completado")
-          .eq("payment_status", "partial")
+          .gt("pending_amount", 0)
           .single()
 
         if (error) {

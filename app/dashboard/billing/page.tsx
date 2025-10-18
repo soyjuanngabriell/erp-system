@@ -9,7 +9,7 @@ import Link from "next/link"
 export default async function BillingPage() {
   const supabase = await createClient()
 
-  // Get completed orders that are paid
+  // Get completed orders that are fully paid
   const { data: paidOrders } = await supabase
     .from("orders")
     .select(`
@@ -19,7 +19,7 @@ export default async function BillingPage() {
       assigned_to_profile:profiles!orders_assigned_to_fkey(full_name)
     `)
     .eq("status", "Completado")
-    .eq("payment_status", "paid")
+    .eq("pending_amount", 0)
     .order("created_at", { ascending: false })
 
   // Get completed orders that are partially paid
@@ -32,7 +32,7 @@ export default async function BillingPage() {
       assigned_to_profile:profiles!orders_assigned_to_fkey(full_name)
     `)
     .eq("status", "Completado")
-    .eq("payment_status", "partial")
+    .gt("pending_amount", 0)
     .order("created_at", { ascending: false })
 
   const formatCurrency = (amount: number) => {

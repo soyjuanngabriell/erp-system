@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Eye, Pencil, UserPlus } from "lucide-react"
+import { Eye, Pencil, UserPlus, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
@@ -20,6 +20,7 @@ interface Order {
   customer_email?: string
   customer_phone?: string
   status: string
+  invoice_type?: string
   total: number
   created_at: string
   created_by_profile?: {
@@ -37,6 +38,7 @@ interface OrdersTableProps {
 
 export function OrdersTable({ orders }: OrdersTableProps) {
   const [assigningOrder, setAssigningOrder] = useState<string | null>(null)
+  const [completingOrder, setCompletingOrder] = useState<string | null>(null)
   const supabase = createClient()
   const { users, loading: usersLoading } = useUsers()
   const { user: currentUser } = useCurrentUser()
@@ -59,6 +61,70 @@ export function OrdersTable({ orders }: OrdersTableProps) {
   const handleOrderAssigned = () => {
     // Refresh the page to show updated data
     window.location.reload()
+  }
+
+  const handleCompleteOrder = async (orderId: string) => {
+    try {
+      setCompletingOrder(orderId)
+      
+      // Update order status to completed
+      const { error: updateError } = await supabase
+        .from("orders")
+        .update({
+          status: "Completado",
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", orderId)
+
+      if (updateError) throw updateError
+
+      // Get the updated order to check payment status
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .select("total, payment_amount, pending_amount, invoice_type")
+        .eq("id", orderId)
+        .single()
+
+      if (orderError) throw orderError
+
+      // Calculate pending amount
+      const pendingAmount = order.total - (order.payment_amount || 0)
+
+      // If order is fully paid, convert to invoice
+      if (pendingAmount <= 0) {
+        try {
+          const { data: invoiceId, error: conversionError } = await supabase.rpc("convert_order_to_invoice", {
+            p_order_id: orderId,
+            p_invoice_type: order.invoice_type || "BASICA"
+          })
+
+          if (conversionError) {
+            console.error("Error converting to invoice:", conversionError)
+            console.error("Conversion error details:", {
+              orderId: orderId,
+              invoiceType: order.invoice_type,
+              error: conversionError
+            })
+            toast.success("Orden completada exitosamente")
+          } else {
+            toast.success("Orden completada y convertida a factura exitosamente")
+          }
+        } catch (conversionError) {
+          console.error("Error converting to invoice:", conversionError)
+          toast.success("Orden completada exitosamente")
+        }
+      } else {
+        toast.success("Orden completada. Tiene saldo pendiente.")
+      }
+
+      // Refresh the page
+      window.location.reload()
+    } catch (error) {
+      console.error("Error completing order:", error)
+      toast.error("Error al completar la orden")
+    } finally {
+      setCompletingOrder(null)
+    }
   }
 
   if (orders.length === 0) {
@@ -136,6 +202,17 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                       <Pencil className="h-4 w-4" />
                     </Link>
                   </Button>
+                  {(order.status === "En Proceso" || order.status === "Pendiente") && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleCompleteOrder(order.id)}
+                      disabled={completingOrder === order.id}
+                      title="Completar Orden"
+                    >
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    </Button>
+                  )}
                 </div>
               </TableCell>
             </TableRow>

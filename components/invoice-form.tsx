@@ -221,7 +221,7 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
   }
 
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0)
-  const tax = subtotal * 0.18 // 18% ITBIS
+  const tax = (invoiceType === "VALOR_FISCAL" || invoiceType === "VALOR_GUBERNAMENTAL") ? subtotal * 0.18 : 0 // Solo ITBIS para facturas fiscales y gubernamentales
   const total = subtotal + tax
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -526,8 +526,8 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
                     <TableCell>{item.product_name}</TableCell>
                     <TableCell>{item.product_sku}</TableCell>
                     <TableCell className="text-right">{item.quantity}</TableCell>
-                    <TableCell className="text-right">RD$ {item.unit_price.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">RD$ {item.subtotal.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">RD$ {(item.unit_price || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">RD$ {(item.subtotal || 0).toLocaleString()}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         type="button"
@@ -551,10 +551,12 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
               <span>Subtotal:</span>
               <span className="font-medium">RD$ {subtotal.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between">
-              <span>ITBIS (18%):</span>
-              <span className="font-medium">RD$ {tax.toLocaleString()}</span>
-            </div>
+            {(invoiceType === "VALOR_FISCAL" || invoiceType === "VALOR_GUBERNAMENTAL") && (
+              <div className="flex justify-between">
+                <span>ITBIS (18%):</span>
+                <span className="font-medium">RD$ {tax.toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between border-t pt-2">
               <span className="font-bold">Total:</span>
               <span className="font-bold">RD$ {total.toLocaleString()}</span>

@@ -64,6 +64,7 @@ export function OrderForm({ products, customers }: OrderFormProps) {
   const [customerEmail, setCustomerEmail] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
   const [status, setStatus] = useState("Pendiente")
+  const [invoiceType, setInvoiceType] = useState("BASICA")
   const [paymentMethod, setPaymentMethod] = useState("")
   const [paymentAmount, setPaymentAmount] = useState(0)
   const [notes, setNotes] = useState("")
@@ -214,7 +215,7 @@ export function OrderForm({ products, customers }: OrderFormProps) {
   }
 
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0)
-  const tax = subtotal * 0.18 // 18% ITBIS
+  const tax = (invoiceType === "VALOR_FISCAL" || invoiceType === "VALOR_GUBERNAMENTAL") ? subtotal * 0.18 : 0 // Solo ITBIS para facturas fiscales y gubernamentales
   const total = subtotal + tax
   const pendingAmount = total - paymentAmount
 
@@ -248,6 +249,7 @@ export function OrderForm({ products, customers }: OrderFormProps) {
           customer_email: customerEmail || null,
           customer_phone: customerPhone || null,
           status,
+          invoice_type: invoiceType,
           subtotal,
           tax,
           discount: 0,
@@ -444,6 +446,23 @@ export function OrderForm({ products, customers }: OrderFormProps) {
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="invoiceType">Tipo de Factura</Label>
+          <Select value={invoiceType} onValueChange={setInvoiceType}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="BASICA">Básica</SelectItem>
+              <SelectItem value="VALOR_FISCAL">Valor Fiscal</SelectItem>
+              <SelectItem value="VALOR_GUBERNAMENTAL">Valor Gubernamental</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">
+            Tipo de factura que se generará al convertir esta orden
+          </p>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="paymentMethod">Método de Pago</Label>
           <Select value={paymentMethod} onValueChange={setPaymentMethod}>
             <SelectTrigger>
@@ -531,8 +550,8 @@ export function OrderForm({ products, customers }: OrderFormProps) {
                     <TableCell>{item.product_name}</TableCell>
                     <TableCell>{item.product_sku}</TableCell>
                     <TableCell className="text-right">{item.quantity}</TableCell>
-                    <TableCell className="text-right">RD$ {item.unit_price.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">RD$ {item.subtotal.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">RD$ {(item.unit_price || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">RD$ {(item.subtotal || 0).toLocaleString()}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         type="button"
@@ -556,10 +575,12 @@ export function OrderForm({ products, customers }: OrderFormProps) {
               <span>Subtotal:</span>
               <span className="font-medium">RD$ {subtotal.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between">
-              <span>ITBIS (18%):</span>
-              <span className="font-medium">RD$ {tax.toLocaleString()}</span>
-            </div>
+            {(invoiceType === "VALOR_FISCAL" || invoiceType === "VALOR_GUBERNAMENTAL") && (
+              <div className="flex justify-between">
+                <span>ITBIS (18%):</span>
+                <span className="font-medium">RD$ {tax.toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between border-t pt-2">
               <span className="font-bold">Total:</span>
               <span className="font-bold">RD$ {total.toLocaleString()}</span>

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShoppingCart, FileText, Package, TrendingUp } from "lucide-react"
+import { AssignedOrdersSection } from "@/components/assigned-orders-section"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -72,6 +73,9 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Assigned Orders Section */}
+      <AssignedOrdersSection />
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

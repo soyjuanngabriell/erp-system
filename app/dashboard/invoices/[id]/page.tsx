@@ -133,8 +133,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                     <TableCell>{item.product_name}</TableCell>
                     <TableCell>{item.product_sku}</TableCell>
                     <TableCell className="text-right">{item.quantity}</TableCell>
-                    <TableCell className="text-right">RD$ {item.unit_price.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">RD$ {item.subtotal.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">RD$ {(item.unit_price || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">RD$ {(item.subtotal || 0).toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
