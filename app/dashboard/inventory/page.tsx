@@ -2,9 +2,10 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus } from "lucide-react"
+import { Plus, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { ProductsTable } from "@/components/products-table"
+import { getAllActiveProducts, getLowStockProducts, getStockStatistics } from "@/lib/utils/stock-utils"
 
 export default async function InventoryPage() {
   const supabase = await createClient()
@@ -21,11 +22,10 @@ export default async function InventoryPage() {
 
   const { data: products } = await supabase.from("products").select("*").order("name")
 
-  const { data: lowStockProducts } = await supabase
-    .from("products")
-    .select("*")
-    .lte("stock", "min_stock")
-    .eq("is_active", true)
+  // Get all active products and calculate stock statistics
+  const allProducts = await getAllActiveProducts()
+  const stockStats = getStockStatistics(allProducts)
+  const lowStockProducts = stockStats.lowStockProducts
 
   return (
     <div className="space-y-6">
@@ -47,14 +47,20 @@ export default async function InventoryPage() {
         </div>
       </div>
 
-      {lowStockProducts && lowStockProducts.length > 0 && (
+      {lowStockProducts.length > 0 && (
         <Card className="border-destructive">
           <CardHeader>
-            <CardTitle className="text-destructive">Alerta de Stock Bajo</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Alerta de Stock Bajo
+              <span className="ml-auto text-sm font-normal">
+                {lowStockProducts.length} producto{lowStockProducts.length !== 1 ? 's' : ''}
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Hay {lowStockProducts.length} producto(s) con stock por debajo del mínimo
+              Hay {lowStockProducts.length} producto{lowStockProducts.length !== 1 ? 's' : ''} con stock por debajo del mínimo
             </p>
             <div className="space-y-2">
               {lowStockProducts.slice(0, 5).map((product) => (
@@ -64,11 +70,27 @@ export default async function InventoryPage() {
                     <p className="text-sm text-muted-foreground">{product.sku}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-destructive">{product.stock} unidades</p>
-                    <p className="text-sm text-muted-foreground">Mínimo: {product.min_stock}</p>
+                    <p className={`font-medium ${
+                      product.stock_status === 'critical' ? 'text-red-600' : 'text-orange-600'
+                    }`}>
+                      {product.stock} unidades
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Mínimo: {product.min_stock} | 
+                      <span className={`ml-1 ${
+                        product.stock_status === 'critical' ? 'text-red-600' : 'text-orange-600'
+                      }`}>
+                        {product.stock_status === 'critical' ? 'CRÍTICO' : 'BAJO'}
+                      </span>
+                    </p>
                   </div>
                 </div>
               ))}
+              {lowStockProducts.length > 5 && (
+                <p className="text-sm text-muted-foreground text-center pt-2">
+                  Y {lowStockProducts.length - 5} producto{lowStockProducts.length - 5 !== 1 ? 's' : ''} más...
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

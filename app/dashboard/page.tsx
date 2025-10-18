@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShoppingCart, FileText, Package, TrendingUp } from "lucide-react"
+import { ShoppingCart, FileText, Package, TrendingUp, AlertTriangle } from "lucide-react"
 import { AssignedOrdersSection } from "@/components/assigned-orders-section"
+import { getAllActiveProducts, getLowStockProducts, getStockStatistics } from "@/lib/utils/stock-utils"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -13,11 +14,10 @@ export default async function DashboardPage() {
 
   const { count: productsCount } = await supabase.from("products").select("*", { count: "exact", head: true })
 
-  const { data: lowStockProducts } = await supabase
-    .from("products")
-    .select("*")
-    .lte("stock", "min_stock")
-    .eq("is_active", true)
+  // Get all active products and calculate stock statistics
+  const allProducts = await getAllActiveProducts()
+  const stockStats = getStockStatistics(allProducts)
+  const lowStockProducts = stockStats.lowStockProducts
 
   const { data: recentOrders } = await supabase
     .from("orders")
@@ -104,12 +104,20 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={lowStockProducts.length > 0 ? "border-destructive" : ""}>
           <CardHeader>
-            <CardTitle>Productos con Stock Bajo</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              {lowStockProducts.length > 0 && <AlertTriangle className="h-5 w-5 text-destructive" />}
+              Productos con Stock Bajo
+              {lowStockProducts.length > 0 && (
+                <span className="ml-auto text-sm font-normal text-destructive">
+                  {lowStockProducts.length} producto{lowStockProducts.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {lowStockProducts && lowStockProducts.length > 0 ? (
+            {lowStockProducts.length > 0 ? (
               <div className="space-y-4">
                 {lowStockProducts.slice(0, 5).map((product) => (
                   <div key={product.id} className="flex items-center justify-between border-b pb-2 last:border-0">
@@ -118,14 +126,34 @@ export default async function DashboardPage() {
                       <p className="text-sm text-muted-foreground">{product.sku}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-destructive">{product.stock} unidades</p>
-                      <p className="text-sm text-muted-foreground">Mín: {product.min_stock}</p>
+                      <p className={`font-medium ${
+                        product.stock_status === 'critical' ? 'text-red-600' : 'text-orange-600'
+                      }`}>
+                        {product.stock} unidades
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Mín: {product.min_stock} | 
+                        <span className={`ml-1 ${
+                          product.stock_status === 'critical' ? 'text-red-600' : 'text-orange-600'
+                        }`}>
+                          {product.stock_status === 'critical' ? 'CRÍTICO' : 'BAJO'}
+                        </span>
+                      </p>
                     </div>
                   </div>
                 ))}
+                {lowStockProducts.length > 5 && (
+                  <p className="text-sm text-muted-foreground text-center">
+                    Y {lowStockProducts.length - 5} producto{lowStockProducts.length - 5 !== 1 ? 's' : ''} más...
+                  </p>
+                )}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No hay productos con stock bajo</p>
+              <div className="text-center py-4">
+                <Package className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No hay productos con stock bajo</p>
+                <p className="text-xs text-muted-foreground mt-1">Todos los productos tienen stock suficiente</p>
+              </div>
             )}
           </CardContent>
         </Card>
