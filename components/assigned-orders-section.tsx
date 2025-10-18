@@ -83,7 +83,7 @@ export function AssignedOrdersSection() {
       // Get the updated order to check payment status
       const { data: order, error: orderError } = await supabase
         .from("orders")
-        .select("total, payment_amount, pending_amount, invoice_type")
+        .select("total, total_paid, pending_amount, invoice_type")
         .eq("id", orderId)
         .single()
 

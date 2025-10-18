@@ -27,6 +27,8 @@ interface Customer {
   id: string
   name: string
   rnc_cedula: string | null
+  email?: string | null
+  phone?: string | null
 }
 
 interface OrderItem {
@@ -187,7 +189,7 @@ export function OrderForm({ products, customers }: OrderFormProps) {
             ? {
                 ...item,
                 quantity: item.quantity + quantity,
-                subtotal: (item.quantity + quantity) * item.unit_price,
+                subtotal: Math.round((item.quantity + quantity) * item.unit_price * 100) / 100,
               }
             : item,
         ),
@@ -201,7 +203,7 @@ export function OrderForm({ products, customers }: OrderFormProps) {
           product_sku: product.sku,
           quantity,
           unit_price: product.price,
-          subtotal: quantity * product.price,
+          subtotal: Math.round(quantity * product.price * 100) / 100,
         },
       ])
     }
@@ -214,9 +216,9 @@ export function OrderForm({ products, customers }: OrderFormProps) {
     setItems(items.filter((item) => item.product_id !== productId))
   }
 
-  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0)
-  const tax = (invoiceType === "VALOR_FISCAL" || invoiceType === "VALOR_GUBERNAMENTAL") ? subtotal * 0.18 : 0 // Solo ITBIS para facturas fiscales y gubernamentales
-  const total = subtotal + tax
+  const subtotal = Math.round(items.reduce((sum, item) => sum + item.subtotal, 0) * 100) / 100
+  const tax = Math.round((invoiceType === "VALOR_FISCAL" || invoiceType === "VALOR_GUBERNAMENTAL") ? (subtotal * 0.18 * 100) / 100 : 0) // Solo ITBIS para facturas fiscales y gubernamentales
+  const total = Math.round((subtotal + tax) * 100) / 100
   const pendingAmount = total - paymentAmount
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -432,7 +434,7 @@ export function OrderForm({ products, customers }: OrderFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="status">Estado</Label>
-          <Select value={status} onValueChange={setStatus}>
+          <Select value={status} onValueChange={(value) => setStatus(value as typeof status)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -449,7 +451,7 @@ export function OrderForm({ products, customers }: OrderFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="invoiceType">Tipo de Factura</Label>
-          <Select value={invoiceType} onValueChange={setInvoiceType}>
+          <Select value={invoiceType} onValueChange={(value) => setInvoiceType(value as typeof invoiceType)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -466,7 +468,7 @@ export function OrderForm({ products, customers }: OrderFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="paymentMethod">Método de Pago</Label>
-          <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+          <Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as typeof paymentMethod)}>
             <SelectTrigger>
               <SelectValue placeholder="Seleccionar método" />
             </SelectTrigger>

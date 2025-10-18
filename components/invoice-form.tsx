@@ -27,6 +27,8 @@ interface Customer {
   id: string
   name: string
   rnc_cedula: string | null
+  email?: string | null
+  phone?: string | null
 }
 
 interface BusinessConfig {
@@ -197,7 +199,7 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
             ? {
                 ...item,
                 quantity: item.quantity + quantity,
-                subtotal: (item.quantity + quantity) * item.unit_price,
+                subtotal: Math.round((item.quantity + quantity) * item.unit_price * 100) / 100,
               }
             : item,
         ),
@@ -211,7 +213,7 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
           product_sku: product.sku,
           quantity,
           unit_price: product.price,
-          subtotal: quantity * product.price,
+          subtotal: Math.round(quantity * product.price * 100) / 100,
         },
       ])
     }
@@ -224,9 +226,9 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
     setItems(items.filter((item) => item.product_id !== productId))
   }
 
-  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0)
-  const tax = (invoiceType === "VALOR_FISCAL" || invoiceType === "VALOR_GUBERNAMENTAL") ? subtotal * 0.18 : 0 // Solo ITBIS para facturas fiscales y gubernamentales
-  const total = subtotal + tax
+  const subtotal = Math.round(items.reduce((sum, item) => sum + item.subtotal, 0) * 100) / 100
+  const tax = Math.round((invoiceType === "VALOR_FISCAL" || invoiceType === "VALOR_GUBERNAMENTAL") ? (subtotal * 0.18 * 100) / 100 : 0) // Solo ITBIS para facturas fiscales y gubernamentales
+  const total = Math.round((subtotal + tax) * 100) / 100
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
