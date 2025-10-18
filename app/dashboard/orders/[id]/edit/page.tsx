@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, Save, Search } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
+import { type RncContributor } from "@/lib/utils/rnc-api"
 
 interface Order {
   id: string
@@ -48,6 +49,13 @@ export default function EditOrderPage({
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  
+  // RNC lookup state
+  const [rncLookup, setRncLookup] = useState("")
+  const [nameLookup, setNameLookup] = useState("")
+  const [isLookingUp, setIsLookingUp] = useState(false)
+  const [selectedSearchResult, setSelectedSearchResult] = useState<RncContributor | null>(null)
+  
   const router = useRouter()
   const supabase = createClient()
 
@@ -87,6 +95,62 @@ export default function EditOrderPage({
 
     fetchOrder()
   }, [params, supabase, router])
+
+  const handleRncLookup = async () => {
+    if (!rncLookup) return
+
+    setIsLookingUp(true)
+    try {
+      const response = await fetch(`https://rnc-contributors.vercel.app/api/contributors/rnc/${rncLookup.replace(/[^0-9]/g, '')}?page=1&limit=1`)
+      const data = await response.json()
+
+      if (data.data && data.data.length > 0) {
+        const contributor = data.data[0]
+        setSelectedSearchResult(contributor)
+        setOrder(prev => prev ? {
+          ...prev,
+          customer_name: contributor.commercial_name || contributor.name,
+          customer_email: contributor.email || "",
+          customer_phone: contributor.phone || ""
+        } : null)
+        toast.success(`RNC encontrado: ${contributor.commercial_name || contributor.name}`)
+      } else {
+        toast.error("RNC no encontrado")
+      }
+    } catch (error) {
+      toast.error("Error al consultar el RNC")
+    } finally {
+      setIsLookingUp(false)
+    }
+  }
+
+  const handleNameLookup = async () => {
+    if (!nameLookup) return
+
+    setIsLookingUp(true)
+    try {
+      const response = await fetch(`https://rnc-contributors.vercel.app/api/contributors/name/${encodeURIComponent(nameLookup)}?page=1&limit=1`)
+      const data = await response.json()
+
+      if (data.data && data.data.length > 0) {
+        const contributor = data.data[0]
+        setSelectedSearchResult(contributor)
+        setOrder(prev => prev ? {
+          ...prev,
+          customer_name: contributor.commercial_name || contributor.name,
+          customer_email: contributor.email || "",
+          customer_phone: contributor.phone || ""
+        } : null)
+        toast.success(`Contribuyente encontrado: ${contributor.commercial_name || contributor.name}`)
+      } else {
+        toast.error("Contribuyente no encontrado")
+      }
+    } catch (error) {
+      toast.error("Error al consultar el contribuyente")
+    } finally {
+      setIsLookingUp(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -282,6 +346,36 @@ export default function EditOrderPage({
               <CardTitle>Información del Cliente</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="rncLookup">Buscar por RNC</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="rncLookup"
+                    value={rncLookup}
+                    onChange={(e) => setRncLookup(e.target.value)}
+                    placeholder="000-0000000-0"
+                  />
+                  <Button type="button" onClick={handleRncLookup} disabled={isLookingUp}>
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="nameLookup">Buscar por Nombre</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="nameLookup"
+                    value={nameLookup}
+                    onChange={(e) => setNameLookup(e.target.value)}
+                    placeholder="Nombre del contribuyente"
+                  />
+                  <Button type="button" onClick={handleNameLookup} disabled={isLookingUp}>
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="customer_name">Nombre del Cliente</Label>
                 <Input

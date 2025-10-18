@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2, Search, Save } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { type RncContributor } from "@/lib/utils/rnc-api"
 
 interface Product {
   id: string
@@ -45,14 +46,7 @@ interface OrderFormProps {
   customers: Customer[]
 }
 
-interface RncSearchResult {
-  rnc: string
-  social_reason: string
-  commercial_name: string
-  economic_activity: string
-  status: string
-  payment_type: string
-}
+// Using RncContributor from rnc-api instead of local interface
 
 
 export function OrderForm({ products, customers }: OrderFormProps) {
@@ -75,10 +69,11 @@ export function OrderForm({ products, customers }: OrderFormProps) {
   const [selectedProduct, setSelectedProduct] = useState("")
   const [quantity, setQuantity] = useState(1)
 
-  // Enhanced RNC lookup state
+  // RNC lookup state
   const [rncLookup, setRncLookup] = useState("")
+  const [nameLookup, setNameLookup] = useState("")
   const [isLookingUp, setIsLookingUp] = useState(false)
-  const [selectedSearchResult, setSelectedSearchResult] = useState<RncSearchResult | null>(null)
+  const [selectedSearchResult, setSelectedSearchResult] = useState<RncContributor | null>(null)
   const [isSavingCustomer, setIsSavingCustomer] = useState(false)
 
   const handleCustomerChange = (value: string) => {
@@ -95,16 +90,19 @@ export function OrderForm({ products, customers }: OrderFormProps) {
 
     setIsLookingUp(true)
     try {
-      const response = await fetch(`/api/rnc-lookup?rnc=${encodeURIComponent(rncLookup)}`)
+      const response = await fetch(`https://rnc-contributors.vercel.app/api/contributors/rnc/${rncLookup.replace(/[^0-9]/g, '')}?page=1&limit=1`)
       const data = await response.json()
 
-      if (data.success && data.data) {
-        setSelectedSearchResult(data.data)
-        setCustomerName(data.data.social_reason || data.data.commercial_name)
-        setCustomerRnc(data.data.rnc)
+      if (data.data && data.data.length > 0) {
+        const contributor = data.data[0]
+        setSelectedSearchResult(contributor)
+        setCustomerName(contributor.commercial_name || contributor.name)
+        setCustomerRnc(contributor.rnc)
+        setCustomerEmail(contributor.email || "")
+        setCustomerPhone(contributor.phone || "")
         toast({
           title: "RNC encontrado",
-          description: `Contribuyente: ${data.data.social_reason || data.data.commercial_name}`,
+          description: `Contribuyente: ${contributor.commercial_name || contributor.name}`,
         })
       } else {
         toast({
@@ -124,6 +122,43 @@ export function OrderForm({ products, customers }: OrderFormProps) {
     }
   }
 
+  const handleNameLookup = async () => {
+    if (!nameLookup) return
+
+    setIsLookingUp(true)
+    try {
+      const response = await fetch(`https://rnc-contributors.vercel.app/api/contributors/name/${encodeURIComponent(nameLookup)}?page=1&limit=1`)
+      const data = await response.json()
+
+      if (data.data && data.data.length > 0) {
+        const contributor = data.data[0]
+        setSelectedSearchResult(contributor)
+        setCustomerName(contributor.commercial_name || contributor.name)
+        setCustomerRnc(contributor.rnc)
+        setCustomerEmail(contributor.email || "")
+        setCustomerPhone(contributor.phone || "")
+        toast({
+          title: "Contribuyente encontrado",
+          description: `${contributor.commercial_name || contributor.name}`,
+        })
+      } else {
+        toast({
+          title: "Contribuyente no encontrado",
+          description: "No se encontró información para este nombre",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al consultar el contribuyente",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLookingUp(false)
+    }
+  }
+
   const handleSaveCustomer = async () => {
     if (!selectedSearchResult) return
 
@@ -133,11 +168,11 @@ export function OrderForm({ products, customers }: OrderFormProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: selectedSearchResult.social_reason || selectedSearchResult.commercial_name,
+          name: selectedSearchResult.commercial_name || selectedSearchResult.name,
           rnc_cedula: selectedSearchResult.rnc,
-          email: "",
-          phone: "",
-          address: ""
+          email: selectedSearchResult.email || "",
+          phone: selectedSearchResult.phone || "",
+          address: selectedSearchResult.location || ""
         })
       })
 
@@ -348,6 +383,21 @@ export function OrderForm({ products, customers }: OrderFormProps) {
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="nameLookup">Buscar por Nombre</Label>
+          <div className="flex gap-2">
+            <Input
+              id="nameLookup"
+              value={nameLookup}
+              onChange={(e) => setNameLookup(e.target.value)}
+              placeholder="Nombre del contribuyente"
+            />
+            <Button type="button" onClick={handleNameLookup} disabled={isLookingUp}>
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="customerName">Nombre del Cliente</Label>
           <Input
             id="customerName"
@@ -383,13 +433,13 @@ export function OrderForm({ products, customers }: OrderFormProps) {
                     <span className="font-medium">Estado:</span> {selectedSearchResult.status}
                   </div>
                   <div className="col-span-2">
-                    <span className="font-medium">Razón Social:</span> {selectedSearchResult.social_reason}
+                    <span className="font-medium">Nombre:</span> {selectedSearchResult.name}
                   </div>
                   <div className="col-span-2">
-                    <span className="font-medium">Nombre Comercial:</span> {selectedSearchResult.commercial_name}
+                    <span className="font-medium">Nombre Comercial:</span> {selectedSearchResult.commercial_name || 'N/A'}
                   </div>
                   <div className="col-span-2">
-                    <span className="font-medium">Actividad Económica:</span> {selectedSearchResult.economic_activity}
+                    <span className="font-medium">Actividad Económica:</span> {selectedSearchResult.economic_activity || 'N/A'}
                   </div>
                   <div>
                     <span className="font-medium">Tipo de Pago:</span> {selectedSearchResult.payment_type}
@@ -497,6 +547,7 @@ export function OrderForm({ products, customers }: OrderFormProps) {
           </p>
         </div>
       </div>
+
 
       <div className="space-y-2">
         <Label htmlFor="notes">Notas</Label>
