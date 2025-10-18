@@ -63,9 +63,9 @@ export function OrderForm({ products, customers }: OrderFormProps) {
   const [customerRnc, setCustomerRnc] = useState("")
   const [customerEmail, setCustomerEmail] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
-  const [status, setStatus] = useState("Pendiente")
-  const [invoiceType, setInvoiceType] = useState("BASICA")
-  const [paymentMethod, setPaymentMethod] = useState("")
+  const [status, setStatus] = useState<"Pendiente" | "Asignada" | "En Proceso" | "Completada" | "Facturada" | "Cancelada">("Pendiente")
+  const [invoiceType, setInvoiceType] = useState<"BASICA" | "VALOR_FISCAL" | "VALOR_GUBERNAMENTAL">("BASICA")
+  const [paymentMethod, setPaymentMethod] = useState<"Efectivo" | "Tarjeta" | "Transferencia" | "Cheque">("Efectivo")
   const [paymentAmount, setPaymentAmount] = useState(0)
   const [notes, setNotes] = useState("")
   const [items, setItems] = useState<OrderItem[]>([])
@@ -254,9 +254,9 @@ export function OrderForm({ products, customers }: OrderFormProps) {
           tax,
           discount: 0,
           total,
-          payment_amount: paymentAmount,
+          total_paid: paymentAmount,
           pending_amount: pendingAmount,
-          payment_method: paymentMethod || null,
+          payment_status: paymentAmount > 0 ? (pendingAmount > 0 ? 'Parcial' : 'Completo') : 'Pendiente',
           notes: notes || null,
           created_by: user.id,
         })
@@ -282,7 +282,7 @@ export function OrderForm({ products, customers }: OrderFormProps) {
 
       // Create payment record if there's a payment amount
       if (paymentAmount > 0) {
-        const { error: paymentError } = await supabase.from("payments").insert({
+        const { error: paymentError } = await supabase.from("order_payments").insert({
           order_id: order.id,
           amount: paymentAmount,
           payment_method: paymentMethod || "Efectivo",
@@ -438,9 +438,11 @@ export function OrderForm({ products, customers }: OrderFormProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Pendiente">Pendiente</SelectItem>
+              <SelectItem value="Asignada">Asignada</SelectItem>
               <SelectItem value="En Proceso">En Proceso</SelectItem>
-              <SelectItem value="Completado">Completado</SelectItem>
-              <SelectItem value="Cancelado">Cancelado</SelectItem>
+              <SelectItem value="Completada">Completada</SelectItem>
+              <SelectItem value="Facturada">Facturada</SelectItem>
+              <SelectItem value="Cancelada">Cancelada</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -472,6 +474,7 @@ export function OrderForm({ products, customers }: OrderFormProps) {
               <SelectItem value="Efectivo">Efectivo</SelectItem>
               <SelectItem value="Tarjeta">Tarjeta</SelectItem>
               <SelectItem value="Transferencia">Transferencia</SelectItem>
+              <SelectItem value="Cheque">Cheque</SelectItem>
             </SelectContent>
           </Select>
         </div>

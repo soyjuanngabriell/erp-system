@@ -14,7 +14,6 @@ interface Product {
   cost: number
   stock: number
   min_stock: number
-  category: string | null
   is_active: boolean
 }
 
@@ -34,7 +33,6 @@ export function ProductsTable({ products }: ProductsTableProps) {
           <TableRow>
             <TableHead>Producto</TableHead>
             <TableHead>SKU</TableHead>
-            <TableHead>Categoría</TableHead>
             <TableHead className="text-right">Costo</TableHead>
             <TableHead className="text-right">Precio</TableHead>
             <TableHead className="text-right">Stock</TableHead>
@@ -49,7 +47,6 @@ export function ProductsTable({ products }: ProductsTableProps) {
               <TableRow key={product.id}>
                 <TableCell className="font-medium">{product.name}</TableCell>
                 <TableCell>{product.sku}</TableCell>
-                <TableCell>{product.category || "-"}</TableCell>
                 <TableCell className="text-right">RD$ {product.cost.toLocaleString()}</TableCell>
                 <TableCell className="text-right">RD$ {product.price.toLocaleString()}</TableCell>
                 <TableCell className="text-right">

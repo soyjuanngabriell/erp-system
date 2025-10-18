@@ -22,7 +22,6 @@ interface ProductFormProps {
     cost: number
     stock: number
     min_stock: number
-    category: string | null
     is_active: boolean
   }
 }
@@ -39,7 +38,6 @@ export function ProductForm({ product }: ProductFormProps) {
   const [cost, setCost] = useState(product?.cost || 0)
   const [stock, setStock] = useState(product?.stock || 0)
   const [minStock, setMinStock] = useState(product?.min_stock || 10)
-  const [category, setCategory] = useState(product?.category || "")
   const [isActive, setIsActive] = useState(product?.is_active ?? true)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,7 +59,6 @@ export function ProductForm({ product }: ProductFormProps) {
             cost,
             stock,
             min_stock: minStock,
-            category: category || null,
             is_active: isActive,
           })
           .eq("id", product.id)
@@ -82,7 +79,6 @@ export function ProductForm({ product }: ProductFormProps) {
           cost,
           stock,
           min_stock: minStock,
-          category: category || null,
           is_active: isActive,
         })
 
@@ -135,11 +131,6 @@ export function ProductForm({ product }: ProductFormProps) {
             placeholder="Descripción del producto"
             rows={3}
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="category">Categoría</Label>
-          <Input id="category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Categoría" />
         </div>
 
         <div className="space-y-2">

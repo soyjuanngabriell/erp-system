@@ -69,6 +69,8 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
   const [customerId, setCustomerId] = useState("")
   const [customerName, setCustomerName] = useState("")
   const [customerRnc, setCustomerRnc] = useState("")
+  const [customerEmail, setCustomerEmail] = useState("")
+  const [customerPhone, setCustomerPhone] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("Efectivo")
   const [notes, setNotes] = useState("")
   const [invoiceType, setInvoiceType] = useState<"BASICA" | "VALOR_FISCAL" | "VALOR_GUBERNAMENTAL">("BASICA")
@@ -91,6 +93,8 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
     if (customer) {
       setCustomerName(customer.name)
       setCustomerRnc(customer.rnc_cedula || "")
+      setCustomerEmail(customer.email || "")
+      setCustomerPhone(customer.phone || "")
     }
   }
 
@@ -241,7 +245,7 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
       }
 
       // Get next invoice number by type from database function
-      const { data: invoiceNumberData, error: invoiceNumberError } = await supabase.rpc("get_next_invoice_number_by_type", {
+      const { data: invoiceNumberData, error: invoiceNumberError } = await supabase.rpc("get_next_invoice_number", {
         p_invoice_type: invoiceType
       })
 
@@ -269,6 +273,8 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
           ncf: ncf,
           customer_name: customerName,
           customer_rnc: customerRnc || null,
+          customer_email: customerEmail || null,
+          customer_phone: customerPhone || null,
           subtotal,
           tax,
           discount: 0,
@@ -286,6 +292,7 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
       const { error: itemsError } = await supabase.from("invoice_items").insert(
         items.map((item) => ({
           invoice_id: invoice.id,
+          product_id: item.product_id,
           product_name: item.product_name,
           product_sku: item.product_sku,
           quantity: item.quantity,
@@ -302,10 +309,11 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
         
         const { data: stockResult, error: stockError } = await supabase.rpc("update_product_stock", {
           p_product_id: item.product_id,
-          p_quantity: -item.quantity,
-          p_type: "salida",
+          p_quantity: item.quantity,
+          p_movement_type: "SALIDA",
           p_reason: `Factura ${invoiceNumber}`,
           p_reference_id: invoice.id,
+          p_reference_type: "invoice",
           p_user_id: user.id,
         })
 

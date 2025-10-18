@@ -90,7 +90,7 @@ export function AssignedOrdersSection() {
       if (orderError) throw orderError
 
       // Calculate pending amount
-      const pendingAmount = order.total - (order.payment_amount || 0)
+      const pendingAmount = order.total - (order.total_paid || 0)
 
       // If order is fully paid, convert to invoice
       if (pendingAmount <= 0) {

@@ -71,7 +71,7 @@ export function OrdersTable({ orders }: OrdersTableProps) {
       const { error: updateError } = await supabase
         .from("orders")
         .update({
-          status: "Completado",
+          status: "Completada",
           updated_at: new Date().toISOString()
         })
         .eq("id", orderId)
@@ -81,17 +81,14 @@ export function OrdersTable({ orders }: OrdersTableProps) {
       // Get the updated order to check payment status
       const { data: order, error: orderError } = await supabase
         .from("orders")
-        .select("total, payment_amount, pending_amount, invoice_type")
+        .select("total, total_paid, pending_amount, invoice_type")
         .eq("id", orderId)
         .single()
 
       if (orderError) throw orderError
 
-      // Calculate pending amount
-      const pendingAmount = order.total - (order.payment_amount || 0)
-
       // If order is fully paid, convert to invoice
-      if (pendingAmount <= 0) {
+      if (order.pending_amount <= 0) {
         try {
           const { data: invoiceId, error: conversionError } = await supabase.rpc("convert_order_to_invoice", {
             p_order_id: orderId,

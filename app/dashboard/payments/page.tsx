@@ -22,8 +22,9 @@ interface Order {
   status: string
   invoice_type?: string
   total: number
-  payment_amount: number
+  total_paid: number
   pending_amount: number
+  payment_status: string
   created_at: string
   invoice_id: string | null
 }
@@ -34,6 +35,7 @@ interface Payment {
   payment_method: string
   payment_date: string
   notes: string | null
+  created_by: string
 }
 
 export default function PaymentManagementPage() {
@@ -59,7 +61,7 @@ export default function PaymentManagementPage() {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .in("status", ["Pendiente", "En Proceso", "Completado"])
+        .gt("pending_amount", 0)
         .order("created_at", { ascending: false })
 
       if (error) throw error
@@ -79,7 +81,7 @@ export default function PaymentManagementPage() {
     try {
       const supabase = createClient()
       const { data, error } = await supabase
-        .from("payments")
+        .from("order_payments")
         .select("*")
         .eq("order_id", orderId)
         .order("payment_date", { ascending: false })
@@ -103,6 +105,16 @@ export default function PaymentManagementPage() {
   const handleAddPayment = async () => {
     if (!selectedOrder || paymentAmount <= 0) return
 
+    // Validate payment amount doesn't exceed pending amount
+    if (paymentAmount > selectedOrder.pending_amount) {
+      toast({
+        title: "Error",
+        description: `El monto del pago (RD$ ${paymentAmount.toLocaleString()}) no puede exceder el saldo pendiente (RD$ ${selectedOrder.pending_amount.toLocaleString()})`,
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsProcessingPayment(true)
     try {
       const supabase = createClient()
@@ -111,7 +123,7 @@ export default function PaymentManagementPage() {
       if (!user) throw new Error("No autenticado")
 
       // Add payment
-      const { error: paymentError } = await supabase.from("payments").insert({
+      const { error: paymentError } = await supabase.from("order_payments").insert({
         order_id: selectedOrder.id,
         amount: paymentAmount,
         payment_method: paymentMethod,
@@ -121,23 +133,39 @@ export default function PaymentManagementPage() {
 
       if (paymentError) throw paymentError
 
-      // Update order payment amount
-      const newPaymentAmount = selectedOrder.payment_amount + paymentAmount
-      const newPendingAmount = selectedOrder.total - newPaymentAmount
-
+      // Update order payment status (trigger will handle the rest)
       const { error: orderError } = await supabase
         .from("orders")
         .update({
-          payment_amount: newPaymentAmount,
-          pending_amount: newPendingAmount,
           updated_at: new Date().toISOString(),
         })
         .eq("id", selectedOrder.id)
 
       if (orderError) throw orderError
 
-      // If order is now fully paid and completed, convert to invoice
-      if (newPendingAmount <= 0 && selectedOrder.status === "Completado") {
+      // Fetch updated order to check if it's now fully paid
+      const { data: updatedOrder } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", selectedOrder.id)
+        .single()
+
+      // If order is now fully paid, mark as completed and convert to invoice
+      if (updatedOrder && updatedOrder.pending_amount <= 0) {
+        // First, mark order as completed if it's not already
+        if (updatedOrder.status !== "Completada") {
+          const { error: completeError } = await supabase
+            .from("orders")
+            .update({
+              status: "Completada",
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", selectedOrder.id)
+
+          if (completeError) {
+            console.error("Error marking order as completed:", completeError)
+          }
+        }
         try {
           const { data: invoiceId, error: conversionError } = await supabase.rpc("convert_order_to_invoice", {
             p_order_id: selectedOrder.id,
@@ -227,10 +255,11 @@ export default function PaymentManagementPage() {
   const getStatusBadge = (status: string) => {
     const variants = {
       "Pendiente": "secondary",
+      "Asignada": "default",
       "En Proceso": "default",
-      "Completado": "default",
+      "Completada": "default",
       "Facturada": "secondary",
-      "Cancelado": "destructive"
+      "Cancelada": "destructive"
     } as const
 
     return (
@@ -314,7 +343,7 @@ export default function PaymentManagementPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Pagado</p>
                     <p className="font-semibold text-green-600">
-                      RD$ {selectedOrder.payment_amount.toLocaleString()}
+                      RD$ {selectedOrder.total_paid.toLocaleString()}
                     </p>
                   </div>
                   <div>
@@ -377,6 +406,7 @@ export default function PaymentManagementPage() {
                               <SelectItem value="Efectivo">Efectivo</SelectItem>
                               <SelectItem value="Tarjeta">Tarjeta</SelectItem>
                               <SelectItem value="Transferencia">Transferencia</SelectItem>
+                              <SelectItem value="Cheque">Cheque</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
