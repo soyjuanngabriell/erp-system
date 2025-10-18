@@ -94,13 +94,35 @@ CREATE OR REPLACE FUNCTION public.update_product_stock(
   p_reference_id UUID DEFAULT NULL,
   p_user_id UUID DEFAULT NULL
 )
-RETURNS VOID
+RETURNS JSON
 LANGUAGE plpgsql
 AS $$
+DECLARE
+  current_stock INTEGER;
+  new_stock INTEGER;
+  result JSON;
 BEGIN
+  -- Get current stock
+  SELECT stock INTO current_stock
+  FROM public.products
+  WHERE id = p_product_id;
+  
+  -- Check if product exists
+  IF current_stock IS NULL THEN
+    RETURN json_build_object('success', false, 'error', 'Product not found');
+  END IF;
+  
+  -- Calculate new stock
+  new_stock := current_stock + p_quantity;
+  
+  -- Check if stock would go negative
+  IF new_stock < 0 THEN
+    RETURN json_build_object('success', false, 'error', 'Insufficient stock', 'current_stock', current_stock, 'requested', ABS(p_quantity));
+  END IF;
+  
   -- Update product stock
   UPDATE public.products
-  SET stock = stock + p_quantity
+  SET stock = new_stock
   WHERE id = p_product_id;
   
   -- Record stock movement
@@ -119,5 +141,7 @@ BEGIN
     p_reference_id,
     p_user_id
   );
+  
+  RETURN json_build_object('success', true, 'old_stock', current_stock, 'new_stock', new_stock);
 END;
 $$;

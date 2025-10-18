@@ -86,7 +86,7 @@ BEGIN
   IF p_invoice_type = 'BASICA' THEN
     invoice_num := prefix || '-' || LPAD(next_seq::TEXT, 6, '0');
   ELSE
-    -- For fiscal and governmental, append sequence to prefix
+    -- For fiscal and governmental, append sequence to prefix (8 digits total)
     invoice_num := prefix || LPAD(next_seq::TEXT, 4, '0');
   END IF;
   

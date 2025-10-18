@@ -75,6 +75,10 @@ export function BusinessConfigForm({ businessConfig }: BusinessConfigFormProps) 
           .eq("id", businessConfig.id)
 
         if (error) throw error
+
+        // Sync invoice sequences after updating config
+        const { error: syncError } = await supabase.rpc("sync_invoice_sequences_from_config")
+        if (syncError) throw syncError
       } else {
         // Create new config
         const { error } = await supabase.from("business_config").insert({
@@ -90,6 +94,10 @@ export function BusinessConfigForm({ businessConfig }: BusinessConfigFormProps) 
         })
 
         if (error) throw error
+
+        // Sync invoice sequences after creating config
+        const { error: syncError } = await supabase.rpc("sync_invoice_sequences_from_config")
+        if (syncError) throw syncError
       }
 
       toast({

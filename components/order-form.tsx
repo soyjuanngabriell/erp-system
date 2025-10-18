@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Search, Save } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Product {
   id: string
@@ -42,6 +43,16 @@ interface OrderFormProps {
   customers: Customer[]
 }
 
+interface RncSearchResult {
+  rnc: string
+  social_reason: string
+  commercial_name: string
+  economic_activity: string
+  status: string
+  payment_type: string
+}
+
+
 export function OrderForm({ products, customers }: OrderFormProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -60,12 +71,96 @@ export function OrderForm({ products, customers }: OrderFormProps) {
   const [selectedProduct, setSelectedProduct] = useState("")
   const [quantity, setQuantity] = useState(1)
 
+  // Enhanced RNC lookup state
+  const [rncLookup, setRncLookup] = useState("")
+  const [isLookingUp, setIsLookingUp] = useState(false)
+  const [selectedSearchResult, setSelectedSearchResult] = useState<RncSearchResult | null>(null)
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false)
+
   const handleCustomerChange = (value: string) => {
     setCustomerId(value)
     const customer = customers.find((c) => c.id === value)
     if (customer) {
       setCustomerName(customer.name)
       setCustomerRnc(customer.rnc_cedula || "")
+    }
+  }
+
+  const handleRncLookup = async () => {
+    if (!rncLookup) return
+
+    setIsLookingUp(true)
+    try {
+      const response = await fetch(`/api/rnc-lookup?rnc=${encodeURIComponent(rncLookup)}`)
+      const data = await response.json()
+
+      if (data.success && data.data) {
+        setSelectedSearchResult(data.data)
+        setCustomerName(data.data.social_reason || data.data.commercial_name)
+        setCustomerRnc(data.data.rnc)
+        toast({
+          title: "RNC encontrado",
+          description: `Contribuyente: ${data.data.social_reason || data.data.commercial_name}`,
+        })
+      } else {
+        toast({
+          title: "RNC no encontrado",
+          description: "No se encontró información para este RNC",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al consultar el RNC",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLookingUp(false)
+    }
+  }
+
+  const handleSaveCustomer = async () => {
+    if (!selectedSearchResult) return
+
+    setIsSavingCustomer(true)
+    try {
+      const response = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: selectedSearchResult.social_reason || selectedSearchResult.commercial_name,
+          rnc_cedula: selectedSearchResult.rnc,
+          email: "",
+          phone: "",
+          address: ""
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: "Cliente guardado",
+          description: "El cliente ha sido guardado exitosamente",
+        })
+        // Refresh the page to update the customers list
+        router.refresh()
+      } else {
+        toast({
+          title: "Error al guardar",
+          description: data.error || "No se pudo guardar el cliente",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al guardar el cliente",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSavingCustomer(false)
     }
   }
 
@@ -217,6 +312,21 @@ export function OrderForm({ products, customers }: OrderFormProps) {
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="rncLookup">Buscar por RNC</Label>
+          <div className="flex gap-2">
+            <Input
+              id="rncLookup"
+              value={rncLookup}
+              onChange={(e) => setRncLookup(e.target.value)}
+              placeholder="000-0000000-0"
+            />
+            <Button type="button" onClick={handleRncLookup} disabled={isLookingUp}>
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="customerName">Nombre del Cliente</Label>
           <Input
             id="customerName"
@@ -236,6 +346,49 @@ export function OrderForm({ products, customers }: OrderFormProps) {
             placeholder="RNC o Cédula"
           />
         </div>
+
+        {selectedSearchResult && (
+          <div className="col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Información del Contribuyente</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">RNC:</span> {selectedSearchResult.rnc}
+                  </div>
+                  <div>
+                    <span className="font-medium">Estado:</span> {selectedSearchResult.status}
+                  </div>
+                  <div className="col-span-2">
+                    <span className="font-medium">Razón Social:</span> {selectedSearchResult.social_reason}
+                  </div>
+                  <div className="col-span-2">
+                    <span className="font-medium">Nombre Comercial:</span> {selectedSearchResult.commercial_name}
+                  </div>
+                  <div className="col-span-2">
+                    <span className="font-medium">Actividad Económica:</span> {selectedSearchResult.economic_activity}
+                  </div>
+                  <div>
+                    <span className="font-medium">Tipo de Pago:</span> {selectedSearchResult.payment_type}
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    type="button" 
+                    size="sm" 
+                    onClick={handleSaveCustomer}
+                    disabled={isSavingCustomer}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {isSavingCustomer ? "Guardando..." : "Guardar Cliente"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="customerEmail">Email</Label>

@@ -54,7 +54,7 @@ export function StockMovementForm({ products }: StockMovementFormProps) {
       }
 
       // Use the database function to update stock
-      const { error } = await supabase.rpc("update_product_stock", {
+      const { data: stockResult, error } = await supabase.rpc("update_product_stock", {
         p_product_id: productId,
         p_quantity: quantityChange,
         p_type: type,
@@ -64,6 +64,11 @@ export function StockMovementForm({ products }: StockMovementFormProps) {
       })
 
       if (error) throw error
+
+      if (!stockResult || !stockResult.success) {
+        const errorMsg = stockResult?.error || "Error desconocido al actualizar stock"
+        throw new Error(errorMsg)
+      }
 
       toast({
         title: "Movimiento registrado",
