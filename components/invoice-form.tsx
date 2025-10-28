@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2, Search, Save } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { type RncContributor } from "@/lib/utils/rnc-api"
+import { type RncContributor, searchContributor } from "@/lib/utils/rnc-api"
 
 interface Product {
   id: string
@@ -98,19 +98,18 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
 
     setIsLookingUp(true)
     try {
-      const response = await fetch(`https://rnc-contributors.vercel.app/api/contributors/rnc/${rncLookup.replace(/[^0-9]/g, '')}?page=1&limit=1`)
-      const data = await response.json()
+      const results = await searchContributor(rncLookup.trim())
 
-      if (data.data && data.data.length > 0) {
-        const contributor = data.data[0]
+      if (results && results.length > 0) {
+        const contributor = results[0]
         setSelectedSearchResult(contributor)
-        setCustomerName(contributor.commercial_name || contributor.name)
+        setCustomerName(contributor.commercial_name || contributor.social_reason || "")
         setCustomerRnc(contributor.rnc)
         setCustomerEmail(contributor.email || "")
         setCustomerPhone(contributor.phone || "")
         toast({
           title: "RNC encontrado",
-          description: `Contribuyente: ${contributor.commercial_name || contributor.name}`,
+          description: `Contribuyente: ${contributor.commercial_name || contributor.social_reason}`,
         })
       } else {
         toast({
@@ -135,19 +134,18 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
 
     setIsLookingUp(true)
     try {
-      const response = await fetch(`https://rnc-contributors.vercel.app/api/contributors/name/${encodeURIComponent(nameLookup)}?page=1&limit=1`)
-      const data = await response.json()
+      const results = await searchContributor(nameLookup.trim())
 
-      if (data.data && data.data.length > 0) {
-        const contributor = data.data[0]
+      if (results && results.length > 0) {
+        const contributor = results[0]
         setSelectedSearchResult(contributor)
-        setCustomerName(contributor.commercial_name || contributor.name)
+        setCustomerName(contributor.commercial_name || contributor.social_reason || "")
         setCustomerRnc(contributor.rnc)
         setCustomerEmail(contributor.email || "")
         setCustomerPhone(contributor.phone || "")
         toast({
           title: "Contribuyente encontrado",
-          description: `${contributor.commercial_name || contributor.name}`,
+          description: `${contributor.commercial_name || contributor.social_reason}`,
         })
       } else {
         toast({
@@ -176,7 +174,7 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: selectedSearchResult.commercial_name || selectedSearchResult.name,
+          name: selectedSearchResult.commercial_name || selectedSearchResult.social_reason,
           rnc_cedula: selectedSearchResult.rnc,
           email: selectedSearchResult.email || "",
           phone: selectedSearchResult.phone || "",
@@ -465,7 +463,7 @@ export function InvoiceForm({ products, customers, businessConfig }: InvoiceForm
                     <span className="font-medium">Estado:</span> {selectedSearchResult.status}
                   </div>
                   <div className="col-span-2">
-                    <span className="font-medium">Nombre:</span> {selectedSearchResult.name}
+                    <span className="font-medium">Nombre:</span> {selectedSearchResult.social_reason}
                   </div>
                   <div className="col-span-2">
                     <span className="font-medium">Nombre Comercial:</span> {selectedSearchResult.commercial_name || 'N/A'}

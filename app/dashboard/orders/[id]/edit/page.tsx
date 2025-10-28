@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft, Save, Search } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { type RncContributor } from "@/lib/utils/rnc-api"
+import { type RncContributor, searchContributor } from "@/lib/utils/rnc-api"
 
 interface Order {
   id: string
@@ -101,19 +101,18 @@ export default function EditOrderPage({
 
     setIsLookingUp(true)
     try {
-      const response = await fetch(`https://rnc-contributors.vercel.app/api/contributors/rnc/${rncLookup.replace(/[^0-9]/g, '')}?page=1&limit=1`)
-      const data = await response.json()
+      const results = await searchContributor(rncLookup.trim())
 
-      if (data.data && data.data.length > 0) {
-        const contributor = data.data[0]
+      if (results && results.length > 0) {
+        const contributor = results[0]
         setSelectedSearchResult(contributor)
         setOrder(prev => prev ? {
           ...prev,
-          customer_name: contributor.commercial_name || contributor.name,
+          customer_name: contributor.commercial_name || contributor.social_reason || "",
           customer_email: contributor.email || "",
           customer_phone: contributor.phone || ""
         } : null)
-        toast.success(`RNC encontrado: ${contributor.commercial_name || contributor.name}`)
+        toast.success(`RNC encontrado: ${contributor.commercial_name || contributor.social_reason}`)
       } else {
         toast.error("RNC no encontrado")
       }
@@ -129,19 +128,18 @@ export default function EditOrderPage({
 
     setIsLookingUp(true)
     try {
-      const response = await fetch(`https://rnc-contributors.vercel.app/api/contributors/name/${encodeURIComponent(nameLookup)}?page=1&limit=1`)
-      const data = await response.json()
+      const results = await searchContributor(nameLookup.trim())
 
-      if (data.data && data.data.length > 0) {
-        const contributor = data.data[0]
+      if (results && results.length > 0) {
+        const contributor = results[0]
         setSelectedSearchResult(contributor)
         setOrder(prev => prev ? {
           ...prev,
-          customer_name: contributor.commercial_name || contributor.name,
+          customer_name: contributor.commercial_name || contributor.social_reason || "",
           customer_email: contributor.email || "",
           customer_phone: contributor.phone || ""
         } : null)
-        toast.success(`Contribuyente encontrado: ${contributor.commercial_name || contributor.name}`)
+        toast.success(`Contribuyente encontrado: ${contributor.commercial_name || contributor.social_reason}`)
       } else {
         toast.error("Contribuyente no encontrado")
       }

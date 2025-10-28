@@ -1,7 +1,8 @@
-// RNC API integration utilities
+// rncApi.ts
+
 export interface RncContributor {
   rnc: string
-  name: string
+  social_reason: string
   commercial_name?: string
   status: string
   payment_type: string
@@ -11,130 +12,49 @@ export interface RncContributor {
   email?: string
 }
 
-export interface RncApiResponse {
-  data: RncContributor[]
+export interface RncApiListResponse {
   total: number
-  page: number
-  limit: number
+  totalPages: number
+  currentPage: number
+  prevPage: number | null
+  nextPage: number | null
+  data: RncContributor[]
 }
 
 /**
- * Search for contributors by name using the RNC API
- * @param name - The name to search for
- * @param page - Page number (default: 1)
- * @param limit - Results per page (default: 1)
- * @returns Promise with RNC API response
+ * Determina si una cadena parece ser un RNC válido (9 dígitos)
  */
-export async function searchContributorsByName(
-  name: string, 
-  page: number = 1, 
-  limit: number = 1
-): Promise<RncApiResponse> {
-  try {
-    const encodedName = encodeURIComponent(name.trim())
-    const url = `https://rnc-contributors.vercel.app/api/contributors/name/${encodedName}?page=${page}&limit=${limit}`
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data: RncApiResponse = await response.json()
-    return data
-  } catch (error) {
-    console.error('Error searching contributors by name:', error)
-    throw new Error('Error al buscar contribuyentes. Por favor, inténtalo de nuevo.')
-  }
+export function isValidRnc(rnc: string): boolean {
+  const clean = rnc.replace(/[^0-9]/g, '')
+  return clean.length === 9
 }
 
 /**
- * Search for contributors by RNC using the RNC API
- * @param rnc - The RNC to search for
- * @param page - Page number (default: 1)
- * @param limit - Results per page (default: 1)
- * @returns Promise with RNC API response
- */
-export async function searchContributorsByRnc(
-  rnc: string, 
-  page: number = 1, 
-  limit: number = 1
-): Promise<RncApiResponse> {
-  try {
-    const cleanRnc = rnc.replace(/[^0-9]/g, '') // Remove non-numeric characters
-    const url = `https://rnc-contributors.vercel.app/api/contributors/rnc/${cleanRnc}?page=${page}&limit=${limit}`
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data: RncApiResponse = await response.json()
-    return data
-  } catch (error) {
-    console.error('Error searching contributors by RNC:', error)
-    throw new Error('Error al buscar contribuyentes por RNC. Por favor, inténtalo de nuevo.')
-  }
-}
-
-/**
- * Format RNC for display (adds dashes)
- * @param rnc - Raw RNC string
- * @returns Formatted RNC string
- */
-export function formatRnc(rnc: string): string {
-  const cleanRnc = rnc.replace(/[^0-9]/g, '')
-  if (cleanRnc.length === 9) {
-    return `${cleanRnc.slice(0, 3)}-${cleanRnc.slice(3, 8)}-${cleanRnc.slice(8)}`
-  }
-  return cleanRnc
-}
-
-/**
- * Clean RNC for API calls (removes dashes and spaces)
- * @param rnc - RNC string with formatting
- * @returns Clean RNC string
+ * Limpia un RNC de guiones o espacios
  */
 export function cleanRnc(rnc: string): string {
   return rnc.replace(/[^0-9]/g, '')
 }
 
 /**
- * Validate RNC format
- * @param rnc - RNC to validate
- * @returns true if valid format
+ * Formatea un RNC (XXX-XXXXX-X)
  */
-export function isValidRnc(rnc: string): boolean {
-  const cleanRnc = rnc.replace(/[^0-9]/g, '')
-  return cleanRnc.length === 9
+export function formatRnc(rnc: string): string {
+  const clean = cleanRnc(rnc)
+  return clean.length === 9
+    ? `${clean.slice(0, 3)}-${clean.slice(3, 8)}-${clean.slice(8)}`
+    : clean
 }
 
 /**
- * Get contributor display name (prefers commercial name over name)
- * @param contributor - Contributor data
- * @returns Display name
+ * Obtiene el nombre más legible del contribuyente
  */
 export function getContributorDisplayName(contributor: RncContributor): string {
-  return contributor.commercial_name || contributor.name
+  return contributor.commercial_name || contributor.social_reason
 }
 
 /**
- * Get contributor status color for UI
- * @param status - Contributor status
- * @returns CSS color class
+ * Devuelve color de estado para la UI
  */
 export function getStatusColor(status: string): string {
   switch (status.toLowerCase()) {
@@ -147,4 +67,80 @@ export function getStatusColor(status: string): string {
     default:
       return 'text-gray-600'
   }
+}
+
+/**
+ * Busca contribuyentes por nombre o razón social.
+ * Devuelve hasta 5 resultados de la página 1.
+ */
+async function searchContributorsByName(
+  name: string,
+  page: number = 1,
+  limit: number = 5
+): Promise<RncContributor[] | null> {
+  if (!name.trim()) return null
+
+  try {
+    const encodedName = encodeURIComponent(name.trim())
+    const url = `https://rnc-contributors.vercel.app/api/contributors/name/${encodedName}?page=${page}&limit=${limit}`
+
+    const response = await fetch(url, { headers: { Accept: 'application/json' } })
+    if (!response.ok) {
+      console.warn('RNC API Name request failed:', response.status)
+      return null
+    }
+
+    const data = await response.json()
+    if (!data?.data || !Array.isArray(data.data)) return null
+
+    return data.data
+  } catch (error) {
+    console.error('Error buscando por nombre o razón social:', error)
+    return null
+  }
+}
+
+/**
+ * Busca un contribuyente por RNC.
+ */
+async function searchContributorsByRnc(
+  rnc: string
+): Promise<RncContributor | null> {
+  if (!rnc.trim()) return null
+
+  try {
+    const clean = cleanRnc(rnc)
+    const url = `https://rnc-contributors.vercel.app/api/contributors/rnc/${clean}`
+
+    const response = await fetch(url, { headers: { Accept: 'application/json' } })
+    if (!response.ok) {
+      console.warn('RNC API RNC request failed:', response.status)
+      return null
+    }
+
+    const data = await response.json()
+    return data?.rnc ? data : null
+  } catch (error) {
+    console.error('Error buscando por RNC:', error)
+    return null
+  }
+}
+
+/**
+ * 🔍 Función principal que detecta si la búsqueda es por RNC o por nombre
+ * Si es un número válido → busca por RNC
+ * Si es texto → busca por nombre (máx. 5 resultados)
+ */
+export async function searchContributor(query: string): Promise<RncContributor[] | null> {
+  if (!query.trim()) return null
+
+  // Detecta si es un RNC
+  if (isValidRnc(query)) {
+    const result = await searchContributorsByRnc(query)
+    return result ? [result] : null
+  }
+
+  // Si no es RNC, busca por nombre
+  const results = await searchContributorsByName(query, 1, 5)
+  return results
 }
